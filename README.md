@@ -1,1 +1,1 @@
-# Интерпретатор Tiny BASIC
+# Interpreter of Tiny BASIC
