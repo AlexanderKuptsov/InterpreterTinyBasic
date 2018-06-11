@@ -1,0 +1,13 @@
+PRINT "0"
+PRINT 1
+a = 2
+PRINT a
+b = 4
+PRINT "3 ", b
+PRINT a + b - 1^
+PRINT "6 ", a*b-1
+
+INPUT c
+PRINT "data = ", c
+INPUT "Write your number: ", d
+PRINT "Your number is ", d

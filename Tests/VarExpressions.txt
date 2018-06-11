@@ -1,0 +1,16 @@
+a = 5
+a = a + 5
+b = -a + 2*a
+c = 2 + 2*2
+C = C/3
+d = 3 + 4*(c + 2*(b - a))
+e = A + B + C + D
+z = ((c*C*c/2/2/2-1)-(-4)/((-c)*(-2))+0/c)/(c+(-1))-C/c
+PRINT "a = ", a
+PRINT "b = ", B
+PRINT "c = ", c
+PRINT "d = ", D
+PRINT "e = ", e
+PRINT "'e' expected to be 33"
+PRINT "z = ", z
+PRINT "'z' expected to be 0"
