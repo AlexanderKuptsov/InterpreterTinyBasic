@@ -1,0 +1,17 @@
+a = 0
+b = 1
+c = 2
+IF a<b THEN PRINT "a<b, true"
+IF a>b THEN PRINT "a>b, false"
+IF a<>b THEN PRINT "a<>b, false"
+IF b>=1 THEN PRINT "b>=1, true"
+IF c<=1 THEN PRINT "c<=1, false"
+IF c-b=b-a THEN PRINT "c-b=b-a, true"
+IF a<2+2*2 THEN
+PRINT "true"
+b = b + c
+c = b - c
+b = b - c
+PRINT "b = ", b
+PRINT "c = ", c
+END
