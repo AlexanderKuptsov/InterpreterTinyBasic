@@ -3,18 +3,16 @@
 
 void assignment();
 
-struct variable *findVar(char *n);
+void tiny_print(), tiny_input(), tiny_if(), tiny_goto(), tiny_gosub(), tiny_return();
 
-void tinyPrint(), tinyInput(), tinyIf(), tinyGoto(), tinyGosub(), tinyReturn();
+void scan_labels();
 
-void scanLabels();
+char *find_label(char *s);
 
-char *findLabel(char *s);
+int get_next_label(char *s);
 
-int getNextLabel(char *s);
+void g_push(char *s);
 
-void gPush(char *s);
-
-char *gPop();
+char *g_pop();
 
 #endif //INTERPRETERTINYBASIC_TINYFUNCTIONS_H

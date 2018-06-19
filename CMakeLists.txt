@@ -5,10 +5,14 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(InterpreterTinyBasic
         Main/main.c
+        Main/InterpreterState.h
+        Main/Lexemes.h
         Main/Analyzer.c
         Main/Analyzer.h
-        Main/Lexemes.h
         Main/TinyFunctions.c
         Main/TinyFunctions.h
         Main/TinyErrors.c
-        Main/TinyErrors.h)
+        Main/TinyErrors.h
+        Main/TinyVariables.h
+        Main/TinyVariables.c
+        Main/TinyVariables.h)

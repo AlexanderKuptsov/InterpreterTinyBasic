@@ -1,7 +1,7 @@
 #ifndef INTERPRETERTINYBASIC_ANALYZER_H
 #define INTERPRETERTINYBASIC_ANALYZER_H
 
-void executing(char *p);
+void executing();
 
 int get_token();
 

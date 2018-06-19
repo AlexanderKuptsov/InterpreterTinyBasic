@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 #include "TinyErrors.h"
-
-extern jmp_buf e_buf;
+#include "InterpreterState.h"
 
 char *e[] = {
         "Syntax error",
@@ -21,5 +20,5 @@ char *e[] = {
 
 void print_error(int e_index) {
     printf("\nError:\t%s\n", e[e_index]);
-    longjmp(e_buf, 1); // Возврат в точку сохранения
+    longjmp(main_state.e_buf, 1); // Возврат в точку сохранения
 }

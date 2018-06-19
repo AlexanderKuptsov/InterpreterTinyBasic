@@ -1,84 +1,24 @@
 #include "TinyFunctions.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <mem.h>
-#include <ctype.h>
+#include <string.h>
 #include "Analyzer.h"
 #include "Lexemes.h"
 #include "TinyErrors.h"
+#include "TinyVariables.h"
+#include "InterpreterState.h"
 
 // Объявление переменных
 #define LABEL_LEN   3
 #define NUM_LABEL   25
 #define SUB_NEST    25
 
-extern char *program;
-extern char token[80];
-extern int token_int;
-extern int token_type;
-
-extern struct variable { // переменная (имя, значение)
-    char name[1];
-    int value;
-} *new_var;
-
 struct label {           // метка (имя, адрес)
     char name[LABEL_LEN];
     char *p;
-};
-int current_num_var = 0;
+} labels[NUM_LABEL]; // все метки
 
-struct label labels[NUM_LABEL]; // все метки
-
-char *gStack[SUB_NEST];   // стек подпрограмм GOSUB
-int gIndex;               // индекс верхнего эл-а
-
-// поиск переменной
-struct variable *findVar(char *n) {
-    int i = 1;
-    *n = (char) tolower(*n);  // игнорирование регистра
-    struct variable *t = new_var;
-    while (i <= current_num_var) {
-        if (!strcmp(n, t->name)) {
-            return t;
-        }
-        i++;
-        t++;
-    }
-    return NULL;
-}
-
-// установка значения
-void setVarValue(struct variable *var, int v) {
-    var->value = v;
-}
-
-// добавление переменной
-struct variable *addVar(char *n) {
-    struct variable *t = NULL;
-
-    current_num_var++;
-    new_var = (struct variable *) realloc(new_var, sizeof(struct variable) * current_num_var);
-    t = new_var;
-
-    if (t != NULL) {
-        new_var = t;
-    }
-    int i = 1;
-    while (i < current_num_var) { // ищем свободное место
-        new_var++;
-        i++;
-    }
-    struct variable *r = new_var;
-    *n = (char) tolower(*n);  // игнорирование регистра
-    strcpy(new_var->name, n);
-    i = 1;
-    while (i < current_num_var) { // возвращаемся
-        new_var--;
-        i++;
-    }
-    return r;
-}
+char *g_stack[SUB_NEST];   // стек подпрограмм GOSUB
+int g_index;               // индекс верхнего эл-а
 
 
 // присваивание значения переменной
@@ -87,36 +27,36 @@ void assignment() {
     get_token(); // получаем имя переменной
 
     struct variable *var;
-    if ((var = findVar(token)) != NULL) { // такая переменная есть
+    if ((var = find_var(tiny_lex.str)) != NULL) { // такая переменная есть
         get_token(); // пропускаем равно
         get_exp(&value);
-        setVarValue(var, value);
+        set_var_value(var, value);
     } else { // такой переменной еще нет
-        var = addVar(token); // добаляем её
+        var = add_var(tiny_lex.str); // добаляем её
         get_token();         // пропускаем равно
         get_exp(&value);
-        setVarValue(var, value);
+        set_var_value(var, value);
     }
 }
 
 // переход на следующую строку программы
-void findEol() {
-    while (*program != '\n' && *program != '\0')
-        program++;
-    if (*program)
-        program++;
+void find_eol() {
+    while (*main_state.prog != '\n' && *main_state.prog != '\0')
+        main_state.prog++;
+    if (main_state.prog)
+        main_state.prog++;
 }
 
-void tinyPrint() {
+void tiny_print() {
     int arg;
     char ending = 0;
 
     do {
         get_token(); // получаем следующий элемент
-        if (token_int == EOL || token_int == FINISHED) break;
+        if (tiny_lex.index == EOL || tiny_lex.index == FINISHED) break;
 
-        if (token_type == STRING) {
-            printf(token); // текст
+        if (tiny_lex.type == STRING) {
+            printf(tiny_lex.str); // текст
             get_token();
         } else {
             put_back();
@@ -124,46 +64,46 @@ void tinyPrint() {
             get_token();
             printf("%d", arg); // значение выражения
         }
-        ending = *token;
+        ending = *tiny_lex.str;
 
-        if (*token != ',' && token_int != EOL && token_int != FINISHED)
+        if (*tiny_lex.str != ',' && tiny_lex.index != EOL && tiny_lex.index != FINISHED)
             print_error(0);
-    } while (*token == ',');
+    } while (*tiny_lex.str == ',');
 
-    if (token_int == EOL || token_int == FINISHED) {
+    if (tiny_lex.index == EOL || tiny_lex.index == FINISHED) {
         if (ending != ',' && ending != ';') printf("\n");
         else print_error(0); // Отсутствует ',' или ';'
     } else print_error(0);
 }
 
-void tinyInput() {
+void tiny_input() {
     int i;
     struct variable *var;
 
     get_token();
-    if (token_type == STRING) {
-        printf(token);
+    if (tiny_lex.type == STRING) {
+        printf(tiny_lex.str);
         get_token();
         // если 1-ый аргумент - строка, то проверка запятой
-        if (*token != ',') print_error(7);
+        if (*tiny_lex.str != ',') print_error(7);
         get_token();
     } else printf("Write data: "); // 1-ый аргумент по умолчанию
-    if ((var = findVar(token)) == NULL)
-        var = addVar(token);
+    if ((var = find_var(tiny_lex.str)) == NULL)
+        var = add_var(tiny_lex.str);
     scanf("%d", &i);      // Чтение входных данных
-    setVarValue(var, i);  // запись в переменную
+    set_var_value(var, i);  // запись в переменную
 }
 
-void tinyIf() {
+void tiny_if() {
     int left, right, condition;
     char operation;
     get_exp(&left);               // Получаем левое выражение
     get_token();                  // Получаем оператор
-    if (!strchr("=<>", *token)) { // проверка оператора
+    if (!strchr("=<>", *tiny_lex.str)) { // проверка оператора
         print_error(0);           //Недопустимый оператор
         return;
     }
-    operation = *token;
+    operation = *tiny_lex.str;
 
     // Определяем результат
     condition = 0;
@@ -174,13 +114,13 @@ void tinyIf() {
             break;
         case '<':
             get_token();
-            if (strchr("=<>", *token)) { // оператор из 2х символов (<=; <>)
-                if (*token == '=') {
+            if (strchr("=<>", *tiny_lex.str)) { // оператор из 2х символов (<=; <>)
+                if (*tiny_lex.str == '=') {
                     get_exp(&right);  // Получаем правое выражение
                     if (left <= right) condition = 1;
                 } else {
                     get_exp(&right);  // Получаем правое выражение
-                    if (*token == '>' && left != right) condition = 1;
+                    if (*tiny_lex.str == '>' && left != right) condition = 1;
                 }
             } else {
                 put_back();
@@ -190,7 +130,7 @@ void tinyIf() {
             break;
         case '>':
             get_token();
-            if (*token == '=') {      // оператор из 2х символов (>=)
+            if (*tiny_lex.str == '=') {      // оператор из 2х символов (>=)
                 get_exp(&right);      // Получаем правое выражение
                 if (left >= right) condition = 1;
             } else {
@@ -204,69 +144,69 @@ void tinyIf() {
     }
     if (condition) {
         get_token();
-        if (token_int != THEN) {
+        if (tiny_lex.index != THEN) {
             print_error(8);
             return;
         }
     } else {
         // переход к исполняемым командам
-        get_token();    
         get_token();
-        if (strchr("\n", *token)) {
+        get_token();
+        if (strchr("\n", *tiny_lex.str)) {
             do {
                 get_token();
-            } while (token_int != END);
-        } else findEol(); // переход на следующую строку
+            } while (tiny_lex.index != END);
+        } else find_eol(); // переход на следующую строку
     }
 }
 
-void tinyGoto() {    
+void tiny_goto() {
     get_token();                 // получаем метку перехода
-    program = findLabel(token);  // переход в программе к найденной метки
+    main_state.prog = find_label(tiny_lex.str);  // переход в программе к найденной метки
 }
 
 // Инициализация массива всех меток
-void labelInit() {
+void label_init() {
     for (int i = 0; i < NUM_LABEL; i++)
         labels[i].name[0] = '\0';
 }
 
 // Поиск всех меток
-void scanLabels() {
+void scan_labels() {
     int location;
     char *temp;
 
-    labelInit();      // Инициализация массива всех меток
-    temp = program;   // сохраняем место начала программы
+    label_init();      // Инициализация массива всех меток
+    temp = main_state.prog;   // сохраняем место начала программы
 
-    get_token();    
-    if (token_type == NUMBER) {
-        strcpy(labels[0].name, token);
-        labels[0].p = program;
+    get_token();
+    if (tiny_lex.type == NUMBER) {
+        strcpy(labels[0].name, tiny_lex.str);
+        labels[0].p = main_state.prog;
     }
 
-    findEol();
+    find_eol();
     do {
         get_token();
-        if (token_type == NUMBER) {
-            location = getNextLabel(token);
+        if (tiny_lex.type == NUMBER) {
+            location = get_next_label(tiny_lex.str);
             if (location == -1 || location == -2) {
                 if (location == -1)
                     print_error(9);
                 else
                     print_error(0);
             }
-            strcpy(labels[location].name, token);
-            labels[location].p = program; // текущий указатель программы
+            strcpy(labels[location].name, tiny_lex.str);
+            labels[location].p = main_state.prog; // текущий указатель программы
         }
         // Если строка не помечена, переход к следующей
-        if (token_int != EOL) findEol();
-    } while (token_int != FINISHED);
-    program = temp; // восстанавливаем начальное значение
+        if (tiny_lex.index != EOL) find_eol();
+    } while (tiny_lex.index != FINISHED);
+    main_state.prog = temp; // восстанавливаем начальное значение
 }
 
 // Поиск метки
-char *findLabel(char *s) {
+char *find_label(char *s) {
     for (int i = 0; i < NUM_LABEL; i++)
         if (!strcmp(labels[i].name, s))
             return labels[i].p;
@@ -274,7 +214,7 @@ char *findLabel(char *s) {
 }
 
 // Поиск последнего индекса массива меток
-int getNextLabel(char *s) {
+int get_next_label(char *s) {
     for (int i = 0; i < NUM_LABEL; i++) {
         if (labels[i].name[0] == 0) return i;
         if (!strcmp(labels[i].name, s)) return -2; // метка уже существует
@@ -283,32 +223,32 @@ int getNextLabel(char *s) {
 }
 
 // GOSUB
-void tinyGosub() {
+void tiny_gosub() {
     get_token();
-    gPush(program);             // место возвращения (*)
-    program = findLabel(token); // переход в найденную метку вызова
+    g_push(main_state.prog);             // место возвращения (*)
+    main_state.prog = find_label(tiny_lex.str); // переход в найденную метку вызова
 }
 
 // Возврат из стека GOSUB
-void tinyReturn() {
-    program = gPop();           // (*)
+void tiny_return() {
+    main_state.prog = g_pop();           // (*)
 }
 
 // Помещает данные в стек GOSUB
-void gPush(char *s) {
-    gIndex++;
-    if (gIndex == SUB_NEST) {
+void g_push(char *s) {
+    g_index++;
+    if (g_index == SUB_NEST) {
         print_error(10);
         return;
     }
-    gStack[gIndex] = s;
+    g_stack[g_index] = s;
 }
 
 // Достает данные из стека GOSUB
-char *gPop() {
-    if (gIndex == 0) {
+char *g_pop() {
+    if (g_index == 0) {
         print_error(10);
         return '\0';
     }
-    return (gStack[gIndex--]);
+    return (g_stack[g_index--]);
 }

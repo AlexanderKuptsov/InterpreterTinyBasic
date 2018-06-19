@@ -21,4 +21,10 @@
 #define END        18
 #define FINISHED   19
 
+struct token {
+    char str[80];   // Строковое представление лексемы
+    int index;      // Внутреннее представление лексемы
+    int type;       // Тип лексемы
+} tiny_lex;
+
 #endif //INTERPRETERTINYBASIC_LEXEMES_H

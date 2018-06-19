@@ -3,19 +3,12 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <setjmp.h>
-#include <mem.h>
-#include "TinyFunctions.h"
+#include <string.h>
+#include "InterpreterState.h"
 #include "Lexemes.h"
+#include "TinyFunctions.h"
 #include "TinyErrors.h"
-
-
-// Переменные
-char *program;      // Основной указатель программы
-char token[80];     // Строковое представление лексемы
-int token_int;      // Внутреннее представление лексемы
-int token_type;     // Тип лексемы
-jmp_buf e_buf;
-
+#include "TinyVariables.h"
 
 struct command {
     char name[7];
@@ -30,11 +23,6 @@ struct command {
         "RETURN", RETURN,
         "END", END};
 
-struct variable { // переменная (имя, значение)
-    char name[1];
-    int value;
-} *new_var;
-
 
 // Объявление функций
 
@@ -48,131 +36,123 @@ void primitive(int *result), arithmetic(char op, int *r, int *s), sign(char op, 
 
 
 // Начало работы интерпретатора
-void executing(char *p) {
-    program = p;
-
+void executing() {
     // Инициализация буфера нелокальных переходов
-    if (setjmp(e_buf)) exit(1);
+    if (setjmp(main_state.e_buf)) exit(1);
 
     // Ищем метки
-    scanLabels(); // для GOTO
+    scan_labels(); // для GOTO
 
     // Главный цикл интерпретатора
     do {
         // получаем токен (лексему)
-        token_type = (char) get_token();
+        tiny_lex.type = (char) get_token();
 
         // Проверка на присваивание
-        if (token_type == VARIABLE) {
+        if (tiny_lex.type == VARIABLE) {
             put_back();
             assignment();
         }
 
         // Проверка на команду
-        if (token_type == COMMAND) {
-            switch (token_int) {
+        if (tiny_lex.type == COMMAND) {
+            switch (tiny_lex.index) {
                 case PRINT:
-                    tinyPrint();
+                    tiny_print();
                     break;
                 case INPUT:
-                    tinyInput();
+                    tiny_input();
                     break;
                 case IF:
-                    tinyIf();
+                    tiny_if();
                     break;
                 case GOTO:
-                    tinyGoto();
+                    tiny_goto();
                     break;
                 case GOSUB:
-                    tinyGosub();
+                    tiny_gosub();
                     break;
                 case RETURN:
-                    tinyReturn();
+                    tiny_return();
                     break;
                 default:
                     break;
             }
         }
-    } while (token_int != FINISHED);
+    } while (tiny_lex.index != FINISHED);
 }
 
 int get_token() {
     char *temp; //Указатель на лексему
 
-    token_type = 0;
-    token_int = 0;
-    temp = token;
+    tiny_lex.type = 0;
+    tiny_lex.index = 0;
+    temp = tiny_lex.str;
 
     //Проверка закончился ли файл интерпретируемой программы
-    if (*program == '\0') {
-        *token = '\0';
-        token_int = FINISHED;
-        return (token_type = DELIMITER);
+    if (*main_state.prog == '\0') {
+        *tiny_lex.str = '\0';
+        tiny_lex.index = FINISHED;
+        return (tiny_lex.type = DELIMITER);
     }
 
     // Проверка на конец строки программы
-    if (*program == '\n') {
-        program++; // продвижение по программе
-        token_int = EOL;
-        *token = '\n';
+    if (*main_state.prog == '\n') {
+        main_state.prog++; // продвижение по программе
+        tiny_lex.index = EOL;
+        *tiny_lex.str = '\n';
         temp++;
         *temp = 0;
-        return (token_type = DELIMITER);
+        return (tiny_lex.type = DELIMITER);
     }
 
     // Пропускаем пробелы и табуляцию
-    while (isspace(*program))
-        program++;
+    while (isspace(*main_state.prog))
+        main_state.prog++;
 
     // Проверка на разделитель
-    if (strchr("+-*/%=:,()><", *program)) {
-        *temp = *program;
-        program++;
+    if (strchr("+-*/%=:,()><", *main_state.prog)) {
+        *temp = *main_state.prog;
+        main_state.prog++;
         temp++;
         // *temp++ = *program++;
         *temp = 0;
-        return (token_type = DELIMITER);
+        return (tiny_lex.type = DELIMITER);
     }
 
     // Проверяем на строку
-    if (*program == '"') {
-        program++;
-        while (*program != '"' && *program != '\n') *temp++ = *program++;
-        if (*program == '\n') print_error(1);
-        program++;
+    if (*main_state.prog == '"') {
+        main_state.prog++;
+        while (*main_state.prog != '"' && *main_state.prog != '\n') *temp++ = *main_state.prog++;
+        if (*main_state.prog == '\n') print_error(1);
+        main_state.prog++;
         *temp = 0;
-        return (token_type = STRING);
+        return (tiny_lex.type = STRING);
     }
 
     // Проверка на число
-    if (isdigit(*program)) {
-        while (!is_delimeter(*program)) {
-            *temp++ = *program++;
+    if (isdigit(*main_state.prog)) {
+        while (!is_delimeter(*main_state.prog)) {
+            *temp++ = *main_state.prog++;
         }
         *temp = 0;
-        return (token_type = NUMBER);
+        return (tiny_lex.type = NUMBER);
     }
 
     // Проверка на переменную или команду
-    if (isalpha(*program)) {
-        while (!is_delimeter(*program))
-            *temp++ = *program++;
+    if (isalpha(*main_state.prog)) {
+        while (!is_delimeter(*main_state.prog))
+            *temp++ = *main_state.prog++;
         *temp = 0;
 
-        token_int = find_command_number(token);
-        if (!token_int) {
-            token_type = VARIABLE;
+        tiny_lex.index = find_command_number(tiny_lex.str);
+        if (!tiny_lex.index) {
+            tiny_lex.type = VARIABLE;
         } else
-            token_type = COMMAND;
-        return token_type;
+            tiny_lex.type = COMMAND;
+        return tiny_lex.type;
     }
     print_error(0); // nothing
-}
-
-int iswhite(char c) {
-    if (c == ' ' || c == '\t')
-        return 1;
-    return 0;
 }
 
 int is_delimeter(char c) {
@@ -194,8 +174,8 @@ int find_command_number(char *t) {
 // Возврат  восстановление лексемы
 void put_back() {
     char *t;
-    t = token;
-    for (; *t; t++) program--;
+    t = tiny_lex.str;
+    for (; *t; t++) main_state.prog--;
 }
 
 ///---Функции рекурсивного синтаксического анализатора---
@@ -211,7 +191,7 @@ void evaluate1(int *result) {
     int store;
 
     evaluate2(result);
-    while ((op = *token) == '+' || op == '-') {
+    while ((op = *tiny_lex.str) == '+' || op == '-') {
         get_token();
         evaluate2(&store);
         arithmetic(op, result, &store);
@@ -223,7 +203,7 @@ void evaluate2(int *result) {
     int store;
 
     evaluate3(result);
-    while ((operation = *token) == '*' || operation == '/') {
+    while ((operation = *tiny_lex.str) == '*' || operation == '/') {
         get_token();
         evaluate3(&store);
         arithmetic(operation, result, &store);
@@ -234,8 +214,8 @@ void evaluate3(int *result) {
     char operation;
     operation = 0;
 
-    if ((token_type == DELIMITER) && *token == '+' || *token == '-') {
-        operation = *token;
+    if ((tiny_lex.type == DELIMITER) && *tiny_lex.str == '+' || *tiny_lex.str == '-') {
+        operation = *tiny_lex.str;
         get_token();
     }
 
@@ -245,10 +225,10 @@ void evaluate3(int *result) {
 }
 
 void evaluate4(int *result) {
-    if ((*token == '(') && (token_type == DELIMITER)) {
+    if ((*tiny_lex.str == '(') && (tiny_lex.type == DELIMITER)) {
         get_token();
         evaluate1(result); // анализируем выражение в скобках
-        if (*token != ')')
+        if (*tiny_lex.str != ')')
             print_error(1);
         get_token();
     } else
@@ -256,13 +236,13 @@ void evaluate4(int *result) {
 }
 
 void primitive(int *result) {
-    switch (token_type) {
+    switch (tiny_lex.type) {
         case VARIABLE:
-            *result = findVar(token)->value; // записываем значение переменной
+            *result = find_var(tiny_lex.str)->value; // записываем значение переменной
             get_token();
             return;
         case NUMBER:
-            *result = atoi(token);           // записываем значение полученного числа
+            *result = atoi(tiny_lex.str);           // записываем значение полученного числа
             get_token();
             return;
         default:
@@ -300,7 +280,7 @@ void arithmetic(char op, int *r, int *s) {
 // получение выражения
 void get_exp(int *result) {
     get_token();
-    if (!*token) {
+    if (!*tiny_lex.str) {
         print_error(6);
         return;
     }
