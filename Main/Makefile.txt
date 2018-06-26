@@ -1,0 +1,25 @@
+CFLAGS = -std=c11 -pedantic -Wall -Wextra -c -o
+OBJ = main.o Lexemes.o Analyzer.o TinyFunctions.o TinyErrors.o TinyVariables.o
+EXE = InterpreterTinyBasic
+
+all: $(EXE)
+$(EXE) : $(OBJ)
+	gcc -o $(EXE) $(OBJ)
+
+main.o : main.c
+	gcc $(CFLAGS) main.o main.c
+
+Lexemes.o : Lexemes.c
+	gcc $(CFLAGS) Lexemes.o Lexemes.c
+
+Analyzer.o : Analyzer.c
+	gcc $(CFLAGS) Analyzer.o Analyzer.c
+
+TinyFunctions.o : TinyFunctions.c
+	gcc $(CFLAGS) TinyFunctions.o TinyFunctions.c
+
+TinyErrors.o : TinyErrors.c
+	gcc $(CFLAGS) TinyErrors.o TinyErrors.c
+
+TinyVariables.o : TinyVariables.c
+	gcc $(CFLAGS) TinyVariables.o TinyVariables.c

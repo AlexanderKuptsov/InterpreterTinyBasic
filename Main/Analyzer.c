@@ -14,14 +14,14 @@ struct command {
     char name[7];
     int token_int;
 } commands[] = {
-        "PRINT", PRINT,
-        "INPUT", INPUT,
-        "IF", IF,
-        "THEN", THEN,
-        "GOTO", GOTO,
-        "GOSUB", GOSUB,
-        "RETURN", RETURN,
-        "END", END};
+        {"PRINT",  PRINT},
+        {"INPUT",  INPUT},
+        {"IF",     IF},
+        {"THEN",   THEN},
+        {"GOTO",   GOTO},
+        {"GOSUB",  GOSUB},
+        {"RETURN", RETURN},
+        {"END",    END}};
 
 
 // Объявление функций
@@ -164,6 +164,7 @@ int get_token() {
         return tiny_lex.type;
     }
     print_error(0); // nothing
+    return (tiny_lex.index = FINISHED);
 }
 
 int is_delimeter(char c) {
@@ -225,7 +226,7 @@ void evaluate3(int *result) {
     char operation;
     operation = 0;
 
-    if ((tiny_lex.type == DELIMITER) && *tiny_lex.str == '+' || *tiny_lex.str == '-') {
+    if ((tiny_lex.type == DELIMITER && *tiny_lex.str == '+') || (*tiny_lex.str == '-')) {
         operation = *tiny_lex.str;
         get_token();
     }

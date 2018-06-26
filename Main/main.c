@@ -41,7 +41,7 @@ int main(int argc, char *arg_info[]) {
 // загрузка программы из файла
 int load_program(char *p, char *f_name) {
     FILE *file;
-    int i = 0;
+    size_t i = 0;
 
     // Читаем файл программы
     if (!(file = fopen(f_name, "r")))
