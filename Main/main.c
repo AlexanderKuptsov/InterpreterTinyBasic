@@ -9,15 +9,20 @@
 int load_program(char *, char *);
 
 int main(int argc, char *arg_info[]) {
-    char *file_name = arg_info[1]; // Имя файла программы
-
-    if (argc != 2) { // Неправильный ввод
-        printf("Try: <executable>.exe <fileName>.txt");
+    if (argc < 2 || argc > 3) { // Неправильный ввод
+        printf("Incorrect input\n"
+               "Try:\t<executable>.exe <fileName>.txt\n"
+               "\t<executable>.exe <fileName>.txt <memorySize>[bytes]");
         exit(1);
+    }
+    char *file_name = arg_info[1]; // Имя файла программы
+    main_state.prog_size = PROGRAM_SIZE;
+    if (argc == 3) {
+        main_state.prog_size = (size_t) arg_info[2];
     }
 
     // Выделение памяти через malloc
-    if ((main_state.p_buf = (char *) malloc(PROGRAM_SIZE)) == NULL) {
+    if ((main_state.p_buf = (char *) malloc(main_state.prog_size)) == NULL) {
         print_error(6);
         exit(1);
     }
@@ -47,8 +52,8 @@ int load_program(char *p, char *f_name) {
         *p = (char) getc(file); // запись символа из потока filestream
         p++;
         i++;
-        if (i == PROGRAM_SIZE)
-            main_state.p_buf = (char *) realloc(main_state.p_buf, (size_t) (i + PROGRAM_SIZE)); // resize memory
+        if (i == main_state.prog_size)
+            main_state.p_buf = (char *) realloc(main_state.p_buf, (size_t) (i + main_state.prog_size)); // resize memory
     } while (!feof(file));
 
     if (*(p - 2) == 0x1a) *(p - 2) = '\0'; // файл заканчивается нулевым символом

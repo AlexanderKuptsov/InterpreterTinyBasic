@@ -37,8 +37,10 @@ void primitive(int *result), arithmetic(char op, int *r, int *s), sign(char op, 
 
 // Начало работы интерпретатора
 void executing() {
+    printf("\n\r");
     // Инициализация буфера нелокальных переходов
     if (setjmp(main_state.e_buf)) exit(1);
+    initialize_token();
 
     // Ищем метки
     scan_labels(); // для GOTO
@@ -84,6 +86,7 @@ void executing() {
 
 int get_token() {
     char *temp; //Указатель на лексему
+    int i = 0;
 
     tiny_lex.type = 0;
     tiny_lex.index = 0;
@@ -115,7 +118,6 @@ int get_token() {
         *temp = *main_state.prog;
         main_state.prog++;
         temp++;
-        // *temp++ = *program++;
         *temp = 0;
         return (tiny_lex.type = DELIMITER);
     }
@@ -123,7 +125,11 @@ int get_token() {
     // Проверяем на строку
     if (*main_state.prog == '"') {
         main_state.prog++;
-        while (*main_state.prog != '"' && *main_state.prog != '\n') *temp++ = *main_state.prog++;
+        while (*main_state.prog != '"' && *main_state.prog != '\n') {
+            i++;
+            if (i >= tiny_lex.size) resize_token();
+            *temp++ = *main_state.prog++;
+        }
         if (*main_state.prog == '\n') print_error(1);
         main_state.prog++;
         *temp = 0;
@@ -133,6 +139,8 @@ int get_token() {
     // Проверка на число
     if (isdigit(*main_state.prog)) {
         while (!is_delimeter(*main_state.prog)) {
+            i++;
+            if (i >= tiny_lex.size) resize_token();
             *temp++ = *main_state.prog++;
         }
         *temp = 0;
@@ -141,8 +149,11 @@ int get_token() {
 
     // Проверка на переменную или команду
     if (isalpha(*main_state.prog)) {
-        while (!is_delimeter(*main_state.prog))
+        while (!is_delimeter(*main_state.prog)) {
+            i++;
+            if (i >= tiny_lex.size) resize_token();
             *temp++ = *main_state.prog++;
+        }
         *temp = 0;
 
         tiny_lex.index = find_command_number(tiny_lex.str);
@@ -270,7 +281,7 @@ void arithmetic(char op, int *r, int *s) {
         case '/':
             if ((*s) != 0)
                 *r = (*r) / (*s);
-            else print_error(6);
+            else print_error(5);
             break;
         default:
             break;

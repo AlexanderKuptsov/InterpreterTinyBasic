@@ -1,0 +1,14 @@
+0 INPUT "Count factorial of: ", n
+IF n<0 THEN
+	PRINT "number must be positive"
+	GOTO 0
+END
+f = 1
+2 IF n>1 THEN
+	f = f*n
+	n = n - 1
+	GOTO 2
+END
+
+PRINT "Result: ", f
+PRINT "Great!"

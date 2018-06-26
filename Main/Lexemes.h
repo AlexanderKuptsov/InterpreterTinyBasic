@@ -1,8 +1,9 @@
 #ifndef INTERPRETERTINYBASIC_LEXEMES_H
 #define INTERPRETERTINYBASIC_LEXEMES_H
 
-
 // Основные типы лексем
+#include <stdlib.h>
+
 #define DELIMITER  1
 #define VARIABLE   2
 #define NUMBER     3
@@ -21,10 +22,16 @@
 #define END        18
 #define FINISHED   19
 
+#define INITIAL_TOKEN_SIZE 5;
+#define RESIZE_CONST 10;
+
 struct token {
-    char str[80];   // Строковое представление лексемы
+    char *str;   // Строковое представление лексемы
     int index;      // Внутреннее представление лексемы
     int type;       // Тип лексемы
+    int size;
 } tiny_lex;
+
+void initialize_token(), resize_token(), clear_token();
 
 #endif //INTERPRETERTINYBASIC_LEXEMES_H
