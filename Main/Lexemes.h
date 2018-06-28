@@ -22,11 +22,11 @@
 #define END        18
 #define FINISHED   19
 
-#define INITIAL_TOKEN_SIZE 5;
-#define RESIZE_CONST 10;
+#define INITIAL_TOKEN_SIZE 10;
+#define RESIZE_CONST 5;
 
 struct token {
-    char *str;   // Строковое представление лексемы
+    char *str;      // Строковое представление лексемы
     int index;      // Внутреннее представление лексемы
     int type;       // Тип лексемы
     int size;

@@ -3,23 +3,8 @@
 #include <string.h>
 #include "Analyzer.h"
 #include "Lexemes.h"
-#include "TinyErrors.h"
 #include "TinyVariables.h"
 #include "InterpreterState.h"
-
-// Объявление переменных
-#define LABEL_LEN   3
-#define NUM_LABEL   25
-#define SUB_NEST    25
-
-struct label {           // метка (имя, адрес)
-    char name[LABEL_LEN];
-    char *p;
-} labels[NUM_LABEL]; // все метки
-
-char *g_stack[SUB_NEST];   // стек подпрограмм GOSUB
-int g_index;               // индекс верхнего эл-а
-
 
 // присваивание значения переменной
 void assignment() {
@@ -79,7 +64,6 @@ void tiny_print() {
 void tiny_input() {
     int i;
     struct variable *var;
-
     get_token();
     if (tiny_lex.type == STRING) {
         printf(tiny_lex.str);
@@ -88,8 +72,9 @@ void tiny_input() {
         if (*tiny_lex.str != ',') print_error(7);
         get_token();
     } else printf("Write data: "); // 1-ый аргумент по умолчанию
-    if ((var = find_var(tiny_lex.str)) == NULL)
+    if ((var = find_var(tiny_lex.str)) == NULL) {
         var = add_var(tiny_lex.str);
+    }
     scanf("%d", &i);      // Чтение входных данных
     set_var_value(var, i);  // запись в переменную
 }
@@ -165,24 +150,18 @@ void tiny_goto() {
     main_state.prog = find_label(tiny_lex.str);  // переход в программе к найденной метки
 }
 
-// Инициализация массива всех меток
-void label_init() {
-    for (int i = 0; i < NUM_LABEL; i++)
-        labels[i].name[0] = '\0';
-}
 
 // Поиск всех меток
 void scan_labels() {
     int location;
     char *temp;
 
-    label_init();      // Инициализация массива всех меток
     temp = main_state.prog;   // сохраняем место начала программы
 
     get_token();
     if (tiny_lex.type == NUMBER) {
-        strcpy(labels[0].name, tiny_lex.str);
-        labels[0].p = main_state.prog;
+        strcpy(main_state.labels[0].name, tiny_lex.str);
+        main_state.labels[0].p = main_state.prog;
     }
 
     find_eol();
@@ -196,8 +175,8 @@ void scan_labels() {
                 else
                     print_error(0);
             }
-            strcpy(labels[location].name, tiny_lex.str);
-            labels[location].p = main_state.prog; // текущий указатель программы
+            strcpy(main_state.labels[location].name, tiny_lex.str);
+            main_state.labels[location].p = main_state.prog; // текущий указатель программы
         }
         // Если строка не помечена, переход к следующей
         if (tiny_lex.index != EOL) find_eol();
@@ -208,16 +187,16 @@ void scan_labels() {
 // Поиск метки
 char *find_label(char *s) {
     for (int i = 0; i < NUM_LABEL; i++)
-        if (!strcmp(labels[i].name, s))
-            return labels[i].p;
+        if (!strcmp(main_state.labels[i].name, s))
+            return main_state.labels[i].p;
     return '\0';
 }
 
 // Поиск последнего индекса массива меток
 int get_next_label(char *s) {
     for (int i = 0; i < NUM_LABEL; i++) {
-        if (labels[i].name[0] == 0) return i;
-        if (!strcmp(labels[i].name, s)) return -2; // метка уже существует
+        if (main_state.labels[i].name[0] == 0) return i;
+        if (!strcmp(main_state.labels[i].name, s)) return -2; // метка уже существует
     }
     return -1; // массив переполнен
 }
@@ -236,19 +215,19 @@ void tiny_return() {
 
 // Помещает данные в стек GOSUB
 void g_push(char *s) {
-    g_index++;
-    if (g_index == SUB_NEST) {
+    main_state.g_info.g_index++;
+    if (main_state.g_info.g_index == SUB_NEST) {
         print_error(10);
         return;
     }
-    g_stack[g_index] = s;
+    main_state.g_info.g_stack[main_state.g_info.g_index] = s;
 }
 
 // Достает данные из стека GOSUB
 char *g_pop() {
-    if (g_index == 0) {
+    if (main_state.g_info.g_index == 0) {
         print_error(10);
         return '\0';
     }
-    return (g_stack[g_index--]);
+    return (main_state.g_info.g_stack[main_state.g_info.g_index--]);
 }

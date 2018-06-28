@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include "InterpreterState.h"
 #include "Analyzer.h"
-#include "TinyErrors.h"
-
 
 // Объявление функции
 int load_program(char *, char *);
@@ -15,8 +13,10 @@ int main(int argc, char *arg_info[]) {
                "\t<executable>.exe <fileName>.txt <memorySize>[bytes]");
         exit(1);
     }
+
     char *file_name = arg_info[1]; // Имя файла программы
-    main_state.prog_size = PROGRAM_SIZE;
+    state_init();
+
     if (argc == 3) {
         main_state.prog_size = (size_t) arg_info[2];
     }
@@ -24,6 +24,7 @@ int main(int argc, char *arg_info[]) {
     // Выделение памяти через malloc
     if ((main_state.p_buf = (char *) malloc(main_state.prog_size)) == NULL) {
         print_error(6);
+
         exit(1);
     }
 
@@ -35,6 +36,7 @@ int main(int argc, char *arg_info[]) {
     }
     main_state.prog = main_state.p_buf;  // Указатель программы
     executing();
+    state_clear();
     return 0;
 }
 

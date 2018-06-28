@@ -10,8 +10,6 @@ add_executable(InterpreterTinyBasic
         Main/Analyzer.h
         Main/TinyFunctions.c
         Main/TinyFunctions.h
-        Main/TinyErrors.c
-        Main/TinyErrors.h
         Main/TinyVariables.h
         Main/TinyVariables.c
-        Main/Lexemes.c Main/Lexemes.h)
+        Main/Lexemes.c Main/Lexemes.h Main/InterpreterState.c Main/InterpreterState.h)

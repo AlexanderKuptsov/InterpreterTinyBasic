@@ -11,3 +11,4 @@ INPUT c
 PRINT "data = ", c
 INPUT "Write your number: ", d
 PRINT "Your number is ", d
+PRINT "Great!"

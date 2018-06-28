@@ -7,22 +7,12 @@
 #include "InterpreterState.h"
 #include "Lexemes.h"
 #include "TinyFunctions.h"
-#include "TinyErrors.h"
 #include "TinyVariables.h"
 
 struct command {
     char name[7];
     int token_int;
-} commands[] = {
-        {"PRINT",  PRINT},
-        {"INPUT",  INPUT},
-        {"IF",     IF},
-        {"THEN",   THEN},
-        {"GOTO",   GOTO},
-        {"GOSUB",  GOSUB},
-        {"RETURN", RETURN},
-        {"END",    END}};
-
+};
 
 // Объявление функций
 
@@ -84,6 +74,34 @@ void executing() {
     } while (tiny_lex.index != FINISHED);
 }
 
+void count_string_len() {
+    int i = 0;
+    while (*main_state.prog != '"' && *main_state.prog != '\n') {
+        i++;
+        if (i >= tiny_lex.size - 1) {
+            resize_token();
+        }
+        main_state.prog++;
+    }
+    for (int j = 0; j < i; ++j) {
+        main_state.prog--;
+    }
+}
+
+void count_by_delimeter() {
+    int i = 0;
+    while (!is_delimeter(*main_state.prog)) {
+        i++;
+        if (i >= tiny_lex.size - 1) {
+            resize_token();
+        }
+        main_state.prog++;
+    }
+    for (int j = 0; j < i; ++j) {
+        main_state.prog--;
+    }
+}
+
 int get_token() {
     char *temp; //Указатель на лексему
     int i = 0;
@@ -125,9 +143,12 @@ int get_token() {
     // Проверяем на строку
     if (*main_state.prog == '"') {
         main_state.prog++;
+        count_string_len(); // преданализ
+        temp = tiny_lex.str;
         while (*main_state.prog != '"' && *main_state.prog != '\n') {
-            i++;
-            if (i >= tiny_lex.size) resize_token();
+            if (i > tiny_lex.size) {
+                resize_token();
+            }
             *temp++ = *main_state.prog++;
         }
         if (*main_state.prog == '\n') print_error(1);
@@ -138,9 +159,9 @@ int get_token() {
 
     // Проверка на число
     if (isdigit(*main_state.prog)) {
+        count_by_delimeter();
+        temp = tiny_lex.str;
         while (!is_delimeter(*main_state.prog)) {
-            i++;
-            if (i >= tiny_lex.size) resize_token();
             *temp++ = *main_state.prog++;
         }
         *temp = 0;
@@ -149,9 +170,9 @@ int get_token() {
 
     // Проверка на переменную или команду
     if (isalpha(*main_state.prog)) {
+        count_by_delimeter();
+        temp = tiny_lex.str;
         while (!is_delimeter(*main_state.prog)) {
-            i++;
-            if (i >= tiny_lex.size) resize_token();
             *temp++ = *main_state.prog++;
         }
         *temp = 0;
@@ -175,7 +196,16 @@ int is_delimeter(char c) {
 
 // Получение внутреннего представления команды (известной лексемы)
 int find_command_number(char *t) {
-    // регистр
+    struct command commands[] = {
+            {"PRINT",  PRINT},
+            {"INPUT",  INPUT},
+            {"IF",     IF},
+            {"THEN",   THEN},
+            {"GOTO",   GOTO},
+            {"GOSUB",  GOSUB},
+            {"RETURN", RETURN},
+            {"END",    END}};
+
     for (int i = 0; *commands[i].name; i++) {
         if (!strcmp(commands[i].name, t))
             return commands[i].token_int;

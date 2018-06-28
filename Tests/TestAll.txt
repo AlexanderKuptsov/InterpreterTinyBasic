@@ -5,7 +5,7 @@ C = 2-4+2
 IF b<=a THEN
 	c = 10
 END
-IF A<>B THEN
+IF A<>6 THEN
 	c = 0
 END
 
