@@ -24,7 +24,6 @@ int main(int argc, char *arg_info[]) {
     // Выделение памяти через malloc
     if ((main_state.p_buf = (char *) malloc(main_state.prog_size)) == NULL) {
         print_error(6);
-
         exit(1);
     }
 
