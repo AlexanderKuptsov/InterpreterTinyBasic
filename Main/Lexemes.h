@@ -30,7 +30,9 @@ struct token {
     int index;      // Внутреннее представление лексемы
     int type;       // Тип лексемы
     int size;
-} tiny_lex;
+};
+
+extern struct token tiny_lex;
 
 void initialize_token(), resize_token(), clear_token();
 

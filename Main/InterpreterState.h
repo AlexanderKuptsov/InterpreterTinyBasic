@@ -20,7 +20,7 @@ struct gosub {
 };
 
 struct variable { // переменная (имя, значение)
-    char name[1];
+    char name[2];
     int value;
 };
 

@@ -17,9 +17,9 @@ void state_init() {
 }
 
 void state_clear(){
-    free(main_state.p_buf);
-    free(main_state.tiny_var);
-    free(tiny_lex.str);
+     free(main_state.p_buf);
+     free(main_state.tiny_var);
+     free(tiny_lex.str);
 }
 
 void print_error(int e_index) {
